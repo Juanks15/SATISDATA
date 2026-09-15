@@ -34,7 +34,6 @@ function DetalleEncuesta({
 
       setEncuesta(encuestaEncontrada);
       setRespuestas(respuestasEncontradas);
-
     } catch (error) {
       console.error(
         'Error cargando detalle de encuesta:',
@@ -45,25 +44,16 @@ function DetalleEncuesta({
     }
   };
 
-  const obtenerPregunta = (preguntaId) => {
-    return preguntasDemo.find(
-      (pregunta) =>
-        pregunta.id === preguntaId
-    );
-  };
-
   const obtenerRespuesta = (preguntaId) => {
-    const respuesta =
-      respuestas.find(
-        (item) =>
-          item.preguntaId === preguntaId
-      );
+    const respuesta = respuestas.find(
+      (item) =>
+        item.preguntaId === preguntaId
+    );
 
     return respuesta?.respuesta;
   };
 
   const mostrarRespuesta = (valor) => {
-
     if (
       valor === undefined ||
       valor === null ||
@@ -73,28 +63,59 @@ function DetalleEncuesta({
     }
 
     if (Array.isArray(valor)) {
-      return valor.join(', ');
+      return valor.length > 0
+        ? valor.join(', ')
+        : 'Sin respuesta';
     }
 
     return String(valor);
   };
 
+  const formatearFecha = (fecha) => {
+    if (!fecha) {
+      return 'Fecha no disponible';
+    }
+
+    return new Date(fecha).toLocaleString(
+      'es-CO',
+      {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }
+    );
+  };
+
+  const estadoSincronizacion =
+    encuesta?.estadoSincronizacion ===
+    'sincronizada';
+
   if (cargando) {
     return (
-      <section className="history-section">
+      <section className="detail-section">
 
         <button
           type="button"
-          className="back-button"
+          className="detail-back-button"
           onClick={onVolver}
         >
           ← Volver a históricos
         </button>
 
-        <div className="history-card">
-          <div className="history-empty">
-            Cargando encuesta...
-          </div>
+        <div className="detail-state-card">
+
+          <div className="detail-loader"></div>
+
+          <strong>
+            Cargando encuesta
+          </strong>
+
+          <span>
+            Consultando la información almacenada...
+          </span>
+
         </div>
 
       </section>
@@ -103,30 +124,31 @@ function DetalleEncuesta({
 
   if (!encuesta) {
     return (
-      <section className="history-section">
+      <section className="detail-section">
 
         <button
           type="button"
-          className="back-button"
+          className="detail-back-button"
           onClick={onVolver}
         >
           ← Volver a históricos
         </button>
 
-        <div className="history-card">
-          <div className="history-empty">
+        <div className="detail-state-card detail-state-error">
 
-            <strong>
-              Encuesta no encontrada
-            </strong>
-
-            <p>
-              No fue posible encontrar el
-              registro solicitado en el
-              almacenamiento local.
-            </p>
-
+          <div className="detail-state-icon">
+            !
           </div>
+
+          <strong>
+            Encuesta no encontrada
+          </strong>
+
+          <span>
+            No fue posible encontrar el registro
+            solicitado en el almacenamiento local.
+          </span>
+
         </div>
 
       </section>
@@ -135,51 +157,66 @@ function DetalleEncuesta({
 
   const preguntas = preguntasDemo
     .filter(
-      (pregunta) =>
-        pregunta.activa
+      (pregunta) => pregunta.activa
     )
     .sort(
-      (a, b) =>
-        a.orden - b.orden
+      (a, b) => a.orden - b.orden
     );
 
   return (
-    <section className="history-section">
+    <section className="detail-section">
 
-      {/* ENCABEZADO */}
+      {/* ==================================================
+          CABECERA
+      ================================================== */}
 
-      <div className="history-header">
+      <div className="detail-page-header">
 
         <button
           type="button"
-          className="back-button"
+          className="detail-back-button"
           onClick={onVolver}
         >
-          ← Volver a históricos
+          <span>←</span>
+          Volver a históricos
         </button>
 
-        <span className="welcome-label">
-          DETALLE
-        </span>
+        <div className="detail-title-row">
 
-        <h2>
-          Detalle de encuesta
-        </h2>
+          <div className="detail-title-icon">
+            #
+          </div>
 
-        <p>
-          Consulte la información y las
-          respuestas registradas.
-        </p>
+          <div>
+
+            <span className="detail-kicker">
+              DETALLE DE REGISTRO
+            </span>
+
+            <h2>
+              Detalle de encuesta
+            </h2>
+
+            <p>
+              Consulte la información completa
+              de la encuesta almacenada.
+            </p>
+
+          </div>
+
+        </div>
 
       </div>
 
-      {/* INFORMACIÓN GENERAL */}
+      {/* ==================================================
+          RESUMEN PRINCIPAL
+      ================================================== */}
 
-      <div className="detail-summary">
+      <section className="detail-hero">
 
-        <div className="detail-summary-main">
+        <div className="detail-hero-main">
 
-          <span className="card-label">
+          <span className="detail-card-kicker">
             CÓDIGO DE ENCUESTA
           </span>
 
@@ -188,101 +225,132 @@ function DetalleEncuesta({
               `Encuesta #${encuesta.id}`}
           </h3>
 
-        </div>
-
-        <div className="detail-status">
-
-          <span className="card-label">
-            ESTADO
-          </span>
-
-          <span
-            className={`history-status ${
-              encuesta.estadoSincronizacion ===
-              'sincronizada'
-                ? 'history-status-synced'
-                : 'history-status-pending'
-            }`}
-          >
-            {encuesta.estadoSincronizacion ===
-            'sincronizada'
-              ? 'Sincronizada'
-              : 'Pendiente'}
+          <span className="detail-hero-date">
+            Registrada el{' '}
+            {formatearFecha(
+              encuesta.fechaCreacion
+            )}
           </span>
 
         </div>
 
-      </div>
+        <div
+          className={
+            estadoSincronizacion
+              ? 'detail-status detail-status-synced'
+              : 'detail-status detail-status-pending'
+          }
+        >
 
-      {/* DATOS */}
+          <span className="detail-status-dot"></span>
 
-      <div className="detail-info-card">
+          <div>
+            <small>
+              ESTADO
+            </small>
 
-        <div className="detail-info-item">
-
-          <span className="card-label">
-            DEPARTAMENTO
-          </span>
-
-          <strong>
-            {encuesta.departamento ||
-              'No registrado'}
-          </strong>
-
-        </div>
-
-        <div className="detail-info-item">
-
-          <span className="card-label">
-            MUNICIPIO
-          </span>
-
-          <strong>
-            {encuesta.municipio ||
-              'No registrado'}
-          </strong>
+            <strong>
+              {estadoSincronizacion
+                ? 'Sincronizada'
+                : 'Pendiente'}
+            </strong>
+          </div>
 
         </div>
 
-        <div className="detail-info-item">
+      </section>
 
-          <span className="card-label">
-            FECHA
-          </span>
+      {/* ==================================================
+          UBICACIÓN
+      ================================================== */}
 
-          <strong>
-            {encuesta.fechaCreacion
-              ? new Date(
-                  encuesta.fechaCreacion
-                ).toLocaleString('es-CO')
-              : 'No registrada'}
-          </strong>
-
-        </div>
-
-      </div>
-
-      {/* RESPUESTAS */}
-
-      <div className="detail-answers-card">
+      <section className="detail-card">
 
         <div className="detail-card-header">
 
           <div>
-
-            <span className="card-label">
-              RESPUESTAS
+            <span className="detail-card-kicker">
+              UBICACIÓN
             </span>
 
             <h3>
-              Respuestas de la encuesta
+              Ubicación de la comunidad
             </h3>
+          </div>
+
+        </div>
+
+        <div className="detail-info-grid">
+
+          <div className="detail-info-item">
+            <span>
+              Departamento
+            </span>
+
+            <strong>
+              {encuesta.departamento ||
+                'No registrado'}
+            </strong>
+
+          </div>
+
+          <div className="detail-info-item">
+            <span>
+              Municipio
+            </span>
+
+            <strong>
+              {encuesta.municipio ||
+                'No registrado'}
+            </strong>
+
+          </div>
+
+          <div className="detail-info-item">
+            <span>
+              Código municipal
+            </span>
+
+            <strong>
+              {encuesta.municipioCodigoCompleto ||
+                encuesta.municipioCodigo ||
+                'No registrado'}
+            </strong>
 
           </div>
 
         </div>
 
-        <div className="detail-answers-list">
+      </section>
+
+      {/* ==================================================
+          RESPUESTAS
+      ================================================== */}
+
+      <section className="detail-card">
+
+        <div className="detail-card-header">
+
+          <div>
+            <span className="detail-card-kicker">
+              EVALUACIÓN
+            </span>
+
+            <h3>
+              Respuestas registradas
+            </h3>
+          </div>
+
+          <span className="detail-answer-count">
+            {respuestas.length}{' '}
+            {respuestas.length === 1
+              ? 'respuesta'
+              : 'respuestas'}
+          </span>
+
+        </div>
+
+        <div className="detail-answer-list">
 
           {preguntas.map(
             (pregunta, index) => {
@@ -292,36 +360,116 @@ function DetalleEncuesta({
                   pregunta.id
                 );
 
+              const respuestaVisible =
+                mostrarRespuesta(
+                  valor
+                );
+
               return (
-                <div
-                  className="detail-answer"
+                <article
+                  className="detail-answer-item"
                   key={pregunta.id}
                 >
 
-                  <span className="detail-question-number">
-                    {index + 1}
-                  </span>
+                  <div className="detail-answer-number">
+                    {String(index + 1).padStart(
+                      2,
+                      '0'
+                    )}
+                  </div>
 
-                  <div className="detail-answer-content">
+                  <div className="detail-answer-body">
 
-                    <strong>
-                      {pregunta.texto}
-                    </strong>
-
-                    <span>
-                      {mostrarRespuesta(
-                        valor
-                      )}
+                    <span className="detail-answer-label">
+                      {pregunta.codigo ||
+                        `Pregunta ${index + 1}`}
                     </span>
+
+                    <h4>
+                      {pregunta.texto}
+                      {pregunta.obligatoria && (
+                        <span className="detail-required">
+                          *
+                        </span>
+                      )}
+                    </h4>
+
+                    <div
+                      className={
+                        respuestaVisible ===
+                        'Sin respuesta'
+                          ? 'detail-answer-value detail-answer-empty'
+                          : 'detail-answer-value'
+                      }
+                    >
+                      {respuestaVisible}
+                    </div>
 
                   </div>
 
-                </div>
+                </article>
               );
             }
           )}
 
         </div>
+
+      </section>
+
+      {/* ==================================================
+          OBSERVACIONES
+      ================================================== */}
+
+      <section className="detail-card">
+
+        <div className="detail-card-header">
+
+          <div>
+            <span className="detail-card-kicker">
+              INFORMACIÓN ADICIONAL
+            </span>
+
+            <h3>
+              Observaciones
+            </h3>
+          </div>
+
+          <span className="detail-optional-badge">
+            Opcional
+          </span>
+
+        </div>
+
+        <div className="detail-observation">
+
+          {encuesta.observacion?.trim() ? (
+            <p>
+              {encuesta.observacion}
+            </p>
+          ) : (
+            <span>
+              No se registraron observaciones
+              adicionales.
+            </span>
+          )}
+
+        </div>
+
+      </section>
+
+      {/* ==================================================
+          PIE
+      ================================================== */}
+
+      <div className="detail-footer">
+
+        <span>
+          ID local de registro
+        </span>
+
+        <strong>
+          #{encuesta.id}
+        </strong>
 
       </div>
 

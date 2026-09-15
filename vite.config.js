@@ -9,14 +9,11 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
 
-      devOptions: {
-        enabled: true,
-      },
-
       manifest: {
         name: 'SATISDATA',
         short_name: 'SATISDATA',
-        description: 'Sistema para la gestión de encuestas de satisfacción',
+        description:
+          'Sistema para la gestión de encuestas de satisfacción',
         theme_color: '#123b63',
         background_color: '#f5f7fa',
         display: 'standalone',
@@ -37,4 +34,21 @@ export default defineConfig({
       },
     }),
   ],
+
+  server: {
+    proxy: {
+      '/api/divipola': {
+        target:
+          'https://geoportal.dane.gov.co',
+        changeOrigin: true,
+        secure: true,
+
+        rewrite: (path) =>
+          path.replace(
+            /^\/api\/divipola/,
+            '/mparcgis/rest/services/Divipola/Serv_DIVIPOLA_MGN_2025/FeatureServer'
+          ),
+      },
+    },
+  },
 });

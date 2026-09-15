@@ -1,27 +1,9 @@
 export const preguntasDemo = [
-  {
-    id: 1,
-    codigo: 'SAT-001',
-    orden: 1,
-    texto: '¿En qué departamento se encuentra la comunidad?',
-    tipo: 'select',
-    obligatoria: true,
-    opciones: [
-      'Amazonas',
-      'Chocó',
-      'Guainía',
-      'Guaviare',
-      'La Guajira',
-      'Vaupés',
-      'Otro',
-    ],
-    activa: true,
-  },
-
+  
   {
     id: 2,
     codigo: 'SAT-002',
-    orden: 2,
+    orden: 1,
     texto: '¿Cuál es el nombre de la comunidad o localidad?',
     tipo: 'texto',
     obligatoria: true,
@@ -31,7 +13,7 @@ export const preguntasDemo = [
   {
     id: 3,
     codigo: 'SAT-003',
-    orden: 3,
+    orden: 2,
     texto:
       '¿Qué tan satisfecho está con el servicio de energía que recibe actualmente?',
     tipo: 'escala',
@@ -44,7 +26,7 @@ export const preguntasDemo = [
   {
     id: 4,
     codigo: 'SAT-004',
-    orden: 4,
+    orden: 3,
     texto:
       '¿Considera que el servicio de energía responde a las necesidades de su hogar o comunidad?',
     tipo: 'escala',
@@ -57,7 +39,7 @@ export const preguntasDemo = [
   {
     id: 5,
     codigo: 'SAT-005',
-    orden: 5,
+    orden: 4,
     texto:
       '¿Cómo considera la continuidad del servicio de energía?',
     tipo: 'select',
@@ -76,7 +58,7 @@ export const preguntasDemo = [
   {
     id: 6,
     codigo: 'SAT-006',
-    orden: 6,
+    orden: 5,
     texto:
       '¿Cómo califica la atención recibida por parte del personal?',
     tipo: 'escala',
@@ -89,7 +71,7 @@ export const preguntasDemo = [
   {
     id: 7,
     codigo: 'SAT-007',
-    orden: 7,
+    orden: 6,
     texto:
       '¿La información proporcionada durante la actividad fue clara y fácil de comprender?',
     tipo: 'escala',
@@ -102,7 +84,7 @@ export const preguntasDemo = [
   {
     id: 8,
     codigo: 'SAT-008',
-    orden: 8,
+    orden: 7,
     texto:
       '¿Considera que la solución energética ha mejorado las condiciones de vida de su comunidad?',
     tipo: 'select',
@@ -120,7 +102,7 @@ export const preguntasDemo = [
   {
     id: 9,
     codigo: 'SAT-009',
-    orden: 9,
+    orden: 8,
     texto:
       '¿En cuáles actividades ha beneficiado principalmente el acceso a la energía?',
     tipo: 'multiple',
@@ -140,7 +122,7 @@ export const preguntasDemo = [
   {
     id: 10,
     codigo: 'SAT-010',
-    orden: 10,
+    orden: 9,
     texto:
       '¿Qué aspecto considera que debería mejorarse para beneficiar a su comunidad?',
     tipo: 'texto',

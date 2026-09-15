@@ -3,7 +3,7 @@ function Question({
   valor,
   onChange,
 }) {
-  if (!pregunta.activa) {
+  if (!pregunta || !pregunta.activa) {
     return null;
   }
 
@@ -19,20 +19,17 @@ function Question({
           {pregunta.texto}
 
           {pregunta.obligatoria && (
-            <span className="required">
-              *
-            </span>
+            <span className="required">*</span>
           )}
         </label>
 
         <textarea
           rows="4"
-          value={valor || ''}
+          value={valor ?? ''}
           onChange={(event) =>
             onChange(event.target.value)
           }
           placeholder="Escriba la respuesta..."
-          required={pregunta.obligatoria}
         />
 
       </div>
@@ -51,25 +48,22 @@ function Question({
           {pregunta.texto}
 
           {pregunta.obligatoria && (
-            <span className="required">
-              *
-            </span>
+            <span className="required">*</span>
           )}
         </label>
 
         <select
-          value={valor || ''}
+          value={valor ?? ''}
           onChange={(event) =>
             onChange(event.target.value)
           }
-          required={pregunta.obligatoria}
         >
 
           <option value="">
             Seleccione una opción
           </option>
 
-          {pregunta.opciones.map(
+          {(pregunta.opciones || []).map(
             (opcion) => (
               <option
                 key={opcion}
@@ -87,70 +81,116 @@ function Question({
   }
 
   // ==========================================
-  // ESCALA
+  // ESCALA 1 - 5
   // ==========================================
 
   if (pregunta.tipo === 'escala') {
-    return (
-      <div className="question-group">
 
-        <label>
-          {pregunta.texto}
+  const minimo = pregunta.minimo ?? 1;
+  const maximo = pregunta.maximo ?? 5;
 
-          {pregunta.obligatoria && (
-            <span className="required">
-              *
-            </span>
-          )}
-        </label>
+  const opciones = [];
 
-        <div className="scale-options">
+  for (
+    let numero = minimo;
+    numero <= maximo;
+    numero++
+  ) {
+    opciones.push(numero);
+  }
 
-          {Array.from(
-            {
-              length:
-                pregunta.maximo -
-                pregunta.minimo +
-                1,
-            },
-            (_, index) =>
-              pregunta.minimo + index
-          ).map((numero) => (
+  const etiquetas = {
+    1: 'Muy insatisfecho',
+    2: 'Insatisfecho',
+    3: 'Neutral',
+    4: 'Satisfecho',
+    5: 'Muy satisfecho',
+  };
 
+  const etiquetaSeleccionada =
+    valor !== undefined &&
+    valor !== '' &&
+    valor !== null
+      ? etiquetas[Number(valor)] || `Valor ${valor}`
+      : '';
+
+  return (
+    <div className="question-group">
+
+      <label>
+        {pregunta.texto}
+
+        {pregunta.obligatoria && (
+          <span className="required">
+            *
+          </span>
+        )}
+      </label>
+
+      <div className="scale-options">
+
+        {opciones.map((numero) => {
+
+          const seleccionado =
+            Number(valor) === Number(numero);
+
+          return (
             <button
               key={numero}
               type="button"
               className={
-                valor === numero
+                seleccionado
                   ? 'scale-option selected'
                   : 'scale-option'
               }
               onClick={() =>
                 onChange(numero)
               }
+              aria-label={
+                etiquetas[numero] ||
+                `Valor ${numero}`
+              }
             >
-              {numero}
+              <span className="scale-number">
+                {numero}
+              </span>
             </button>
-
-          ))}
-
-        </div>
-
-        <div className="scale-labels">
-
-          <span>
-            Muy insatisfecho
-          </span>
-
-          <span>
-            Muy satisfecho
-          </span>
-
-        </div>
+          );
+        })}
 
       </div>
-    );
-  }
+
+      <div className="scale-labels">
+
+        <span>
+          Muy insatisfecho
+        </span>
+
+        <span>
+          Muy satisfecho
+        </span>
+
+      </div>
+
+      {etiquetaSeleccionada && (
+
+        <div className="scale-selected">
+
+          <span className="scale-selected-check">
+            ✓
+          </span>
+
+          <span>
+            {etiquetaSeleccionada}
+          </span>
+
+        </div>
+
+      )}
+
+    </div>
+  );
+}
 
   // ==========================================
   // MÚLTIPLE
@@ -163,18 +203,13 @@ function Question({
         ? valor
         : [];
 
-    const cambiarOpcion = (
-      opcion
-    ) => {
+    const cambiarOpcion = (opcion) => {
 
-      if (
-        respuestas.includes(opcion)
-      ) {
+      if (respuestas.includes(opcion)) {
 
         onChange(
           respuestas.filter(
-            (item) =>
-              item !== opcion
+            (item) => item !== opcion
           )
         );
 
@@ -195,15 +230,13 @@ function Question({
           {pregunta.texto}
 
           {pregunta.obligatoria && (
-            <span className="required">
-              *
-            </span>
+            <span className="required">*</span>
           )}
         </label>
 
         <div className="multiple-options">
 
-          {pregunta.opciones.map(
+          {(pregunta.opciones || []).map(
             (opcion) => (
 
               <label
@@ -213,13 +246,9 @@ function Question({
 
                 <input
                   type="checkbox"
-                  checked={respuestas.includes(
-                    opcion
-                  )}
+                  checked={respuestas.includes(opcion)}
                   onChange={() =>
-                    cambiarOpcion(
-                      opcion
-                    )
+                    cambiarOpcion(opcion)
                   }
                 />
 
