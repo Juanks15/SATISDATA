@@ -2903,3 +2903,383 @@ textarea:focus-visible {
     max-width: 100%;
   }
 }
+  /* =========================================================
+   MODAL PROFESIONAL - ENCUESTA EN PROGRESO
+   ========================================================= */
+
+.draft-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+
+  background: rgba(9, 28, 45, 0.58);
+
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+
+  animation: draft-overlay-in 0.2s ease;
+}
+
+.draft-modal {
+  position: relative;
+
+  width: min(100%, 540px);
+
+  padding: 0;
+
+  overflow: hidden;
+
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 20px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 30px 80px rgba(7, 30, 48, 0.30),
+    0 8px 25px rgba(7, 30, 48, 0.12);
+
+  animation: draft-modal-in 0.25s ease;
+}
+
+/* ---------------------------------------------------------
+   CABECERA
+   --------------------------------------------------------- */
+
+.draft-modal::before {
+  content: '';
+
+  display: block;
+
+  width: 100%;
+  height: 5px;
+
+  background: var(--primary);
+}
+
+.draft-modal-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+
+  padding: 26px 28px 12px;
+}
+
+.draft-icon {
+  flex: 0 0 auto;
+
+  width: 48px;
+  height: 48px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid #cddfeb;
+  border-radius: 14px;
+
+  background: #edf5fb;
+
+  color: var(--primary);
+
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.draft-title-area {
+  min-width: 0;
+}
+
+.draft-title-area .card-label {
+  display: block;
+
+  margin-bottom: 5px;
+
+  color: var(--primary);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.draft-title-area h2 {
+  margin: 0;
+
+  color: var(--primary-dark);
+
+  font-size: 23px;
+  line-height: 1.25;
+}
+
+/* ---------------------------------------------------------
+   CONTENIDO
+   --------------------------------------------------------- */
+
+.draft-modal-body {
+  padding: 8px 28px 0;
+}
+
+.draft-description {
+  margin: 0;
+
+  color: var(--text-muted);
+
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+/* ---------------------------------------------------------
+   INFORMACIÓN
+   --------------------------------------------------------- */
+
+.draft-info {
+  display: grid;
+
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  gap: 10px;
+
+  margin-top: 20px;
+}
+
+.draft-info div {
+  min-width: 0;
+
+  padding: 13px 14px;
+
+  border: 1px solid #e0e8ef;
+  border-radius: 11px;
+
+  background: #f8fafc;
+}
+
+.draft-info div:last-child {
+  grid-column: 1 / -1;
+}
+
+.draft-info span {
+  display: block;
+
+  margin-bottom: 5px;
+
+  color: #7b8b99;
+
+  font-size: 9px;
+  font-weight: 800;
+
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.draft-info strong {
+  display: block;
+
+  overflow: hidden;
+
+  color: var(--text);
+
+  font-size: 13px;
+  font-weight: 700;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------
+   PROGRESO
+   --------------------------------------------------------- */
+
+.draft-progress {
+  margin-top: 22px;
+
+  padding: 15px 16px;
+
+  border: 1px solid #e0e8ef;
+  border-radius: 12px;
+
+  background: #fbfcfd;
+}
+
+.draft-progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 9px;
+
+  color: var(--text-muted);
+
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.draft-progress-header strong {
+  color: var(--primary);
+
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.draft-progress-bar {
+  width: 100%;
+  height: 8px;
+
+  overflow: hidden;
+
+  border-radius: 999px;
+
+  background: #e5ebf0;
+}
+
+.draft-progress-bar div {
+  height: 100%;
+
+  border-radius: inherit;
+
+  background: var(--primary);
+
+  transition: width 0.3s ease;
+}
+
+/* ---------------------------------------------------------
+   ACCIONES
+   --------------------------------------------------------- */
+
+.draft-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 10px;
+
+  margin-top: 24px;
+  padding: 18px 28px 26px;
+
+  border-top: 1px solid #edf1f4;
+
+  background: #fcfdfe;
+}
+
+.draft-actions .secondary-button,
+.draft-actions .primary-button {
+  min-height: 42px;
+
+  padding: 10px 17px;
+
+  border-radius: 10px;
+
+  font-family: inherit;
+
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.draft-actions .secondary-button {
+  border: 1px solid #d3dee7;
+
+  background: #ffffff;
+
+  color: var(--primary);
+}
+
+.draft-actions .secondary-button:hover {
+  border-color: #b8c8d5;
+
+  background: #f5f8fa;
+}
+
+.draft-actions .primary-button {
+  border: 1px solid var(--primary);
+
+  background: var(--primary);
+
+  color: #ffffff;
+
+  box-shadow: 0 4px 10px rgba(18, 59, 99, 0.14);
+}
+
+.draft-actions .primary-button:hover {
+  background: var(--primary-dark);
+
+  transform: translateY(-1px);
+
+  box-shadow: 0 6px 14px rgba(18, 59, 99, 0.18);
+}
+
+/* ---------------------------------------------------------
+   ANIMACIONES
+   --------------------------------------------------------- */
+
+@keyframes draft-overlay-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes draft-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ---------------------------------------------------------
+   RESPONSIVE
+   --------------------------------------------------------- */
+
+@media (max-width: 600px) {
+  .draft-overlay {
+    padding: 14px;
+  }
+
+  .draft-modal {
+    border-radius: 17px;
+  }
+
+  .draft-modal-header {
+    padding: 22px 20px 10px;
+  }
+
+  .draft-modal-body {
+    padding: 8px 20px 0;
+  }
+
+  .draft-title-area h2 {
+    font-size: 20px;
+  }
+
+  .draft-description {
+    font-size: 12px;
+  }
+
+  .draft-info {
+    grid-template-columns: 1fr;
+  }
+
+  .draft-info div:last-child {
+    grid-column: auto;
+  }
+
+  .draft-actions {
+    flex-direction: column-reverse;
+
+    padding: 16px 20px 20px;
+  }
+
+  .draft-actions button {
+    width: 100%;
+  }
+}

@@ -82,6 +82,11 @@ function App() {
 
   const [borradorId, setBorradorId] = useState(null);
 const [guardandoBorrador, setGuardandoBorrador] = useState(false);
+const [borradorEncontrado, setBorradorEncontrado] =
+  useState(null);
+
+const [mostrarBorrador, setMostrarBorrador] =
+  useState(false);
 
   // ==========================================
   // ÚNICA FUENTE DE PREGUNTAS
@@ -347,56 +352,18 @@ useEffect(() => {
         .toArray();
 
     if (borradoresActivos.length > 0) {
-      const borrador = borradoresActivos
-        .sort(
-          (a, b) =>
-            new Date(b.fechaActualizacion) -
-            new Date(a.fechaActualizacion)
-        )[0];
+  const borrador = borradoresActivos
+    .sort(
+      (a, b) =>
+        new Date(b.fechaActualizacion) -
+        new Date(a.fechaActualizacion)
+    )[0];
 
-      const continuar = window.confirm(
-        'Existe una encuesta en progreso. ¿Desea continuarla?'
-      );
+  setBorradorEncontrado(borrador);
+  setMostrarBorrador(true);
 
-      if (continuar) {
-        setBorradorId(borrador.id);
-
-        setFormulario(
-          borrador.formulario || {
-            departamento: '',
-            municipio: '',
-            observacion: '',
-            departamentoCodigo: '',
-            municipioCodigo: '',
-            municipioCodigoCompleto: '',
-          }
-        );
-
-        setRespuestas(
-          borrador.respuestas || {}
-        );
-
-        if (
-          borrador.formulario?.departamentoCodigo
-        ) {
-          const datos =
-            await obtenerMunicipios(
-              borrador.formulario
-                .departamentoCodigo
-            );
-
-          setMunicipios(datos);
-        }
-
-        setVista('encuesta');
-
-        return;
-      }
-
-      await db.borradores.delete(
-        borrador.id
-      );
-    }
+  return;
+}
 
     const nuevoBorrador = {
       fechaCreacion:
@@ -439,7 +406,6 @@ useEffect(() => {
 
     setMunicipios([]);
     setRespuestas({});
-    setBorradorId(null);
     setErrorDepartamentos('');
     setErrorMunicipios('');
 
@@ -455,7 +421,113 @@ useEffect(() => {
     );
   }
 };
+// ==========================================
+  // CONTINUAR BORRADOR
+  // ==========================================
+const continuarBorrador = async () => {
+  if (!borradorEncontrado) {
+    return;
+  }
 
+  try {
+    setBorradorId(
+      borradorEncontrado.id
+    );
+
+    const datosFormulario =
+      borradorEncontrado.formulario || {};
+
+    setFormulario({
+      departamento:
+        datosFormulario.departamento || '',
+
+      municipio:
+        datosFormulario.municipio || '',
+
+      observacion:
+        datosFormulario.observacion || '',
+
+      departamentoCodigo:
+        datosFormulario.departamentoCodigo || '',
+
+      municipioCodigo:
+        datosFormulario.municipioCodigo || '',
+
+      municipioCodigoCompleto:
+        datosFormulario.municipioCodigoCompleto || '',
+    });
+
+    setRespuestas(
+      borradorEncontrado.respuestas || {}
+    );
+
+    setErrorDepartamentos('');
+    setErrorMunicipios('');
+
+    if (
+      datosFormulario.departamentoCodigo
+    ) {
+      const datosMunicipios =
+        await obtenerMunicipios(
+          datosFormulario.departamentoCodigo
+        );
+
+      setMunicipios(datosMunicipios);
+    } else {
+      setMunicipios([]);
+    }
+
+    setMostrarBorrador(false);
+    setBorradorEncontrado(null);
+    setVista('encuesta');
+  } catch (error) {
+    console.error(
+      'Error recuperando borrador:',
+      error
+    );
+
+    alert(
+      'No fue posible recuperar la encuesta.'
+    );
+  }
+};
+  // ==========================================
+  // DESCARTAR BORRADOR
+  // ==========================================
+  const descartarBorrador = async () => {
+  if (!borradorEncontrado) {
+    return;
+  }
+
+  const confirmar =
+    window.confirm(
+      '¿Está seguro de descartar esta encuesta en progreso? Esta acción eliminará el borrador.'
+    );
+
+  if (!confirmar) {
+    return;
+  }
+
+  try {
+    await db.borradores.delete(
+      borradorEncontrado.id
+    );
+
+    setBorradorEncontrado(null);
+    setMostrarBorrador(false);
+
+    iniciarEncuesta();
+  } catch (error) {
+    console.error(
+      'Error descartando borrador:',
+      error
+    );
+
+    alert(
+      'No fue posible descartar el borrador.'
+    );
+  }
+};
   // ==========================================
   // ACTUALIZAR CAMPOS GENERALES
   // ==========================================
@@ -626,7 +698,7 @@ const guardarBorrador = async () => {
           'rw',
           db.encuestas,
           db.respuestas,
-          db.borrdores,
+          db.borradores,
           async () => {
             const id =
               await db.encuestas.add(
@@ -875,6 +947,169 @@ const guardarBorrador = async () => {
       ====================================== */}
 
       <main className="main-content">
+       {mostrarBorrador &&
+  borradorEncontrado && (
+    <div className="draft-overlay">
+      <section
+        className="draft-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="draft-title"
+      >
+        <div className="draft-modal-header">
+          <div className="draft-icon">
+            ✓
+          </div>
+
+          <div className="draft-title-area">
+            <span className="card-label">
+              ENCUESTA EN PROGRESO
+            </span>
+
+            <h2 id="draft-title">
+              Hay una encuesta pendiente
+            </h2>
+          </div>
+        </div>
+
+        <div className="draft-modal-body">
+          <p className="draft-description">
+            Encontramos una encuesta que quedó
+            guardada en este dispositivo. Puede
+            continuarla donde la dejó o descartarla
+            y comenzar una nueva.
+          </p>
+
+          <div className="draft-info">
+            <div>
+              <span>Departamento</span>
+
+              <strong>
+                {borradorEncontrado.formulario
+                  ?.departamento ||
+                  'Sin seleccionar'}
+              </strong>
+            </div>
+
+            <div>
+              <span>Municipio</span>
+
+              <strong>
+                {borradorEncontrado.formulario
+                  ?.municipio ||
+                  'Sin seleccionar'}
+              </strong>
+            </div>
+
+            <div>
+              <span>Última actualización</span>
+
+              <strong>
+                {new Date(
+                  borradorEncontrado.fechaActualizacion
+                ).toLocaleString('es-CO', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </strong>
+            </div>
+          </div>
+
+          <div className="draft-progress">
+            <div className="draft-progress-header">
+              <span>Progreso de la encuesta</span>
+
+              <strong>
+                {Math.round(
+                  (
+                    preguntasObligatorias.filter(
+                      (pregunta) => {
+                        const valor =
+                          borradorEncontrado
+                            .respuestas?.[
+                            pregunta.id
+                          ];
+
+                        return (
+                          valor !== undefined &&
+                          valor !== null &&
+                          valor !== '' &&
+                          !(
+                            Array.isArray(valor) &&
+                            valor.length === 0
+                          )
+                        );
+                      }
+                    ).length /
+                      Math.max(
+                        preguntasObligatorias.length,
+                        1
+                      )
+                  ) * 100
+                )}
+                %
+              </strong>
+            </div>
+
+            <div className="draft-progress-bar">
+              <div
+                style={{
+                  width: `${Math.round(
+                    (
+                      preguntasObligatorias.filter(
+                        (pregunta) => {
+                          const valor =
+                            borradorEncontrado
+                              .respuestas?.[
+                              pregunta.id
+                            ];
+
+                          return (
+                            valor !== undefined &&
+                            valor !== null &&
+                            valor !== '' &&
+                            !(
+                              Array.isArray(valor) &&
+                              valor.length === 0
+                            )
+                          );
+                        }
+                      ).length /
+                        Math.max(
+                          preguntasObligatorias.length,
+                          1
+                        )
+                    ) * 100
+                  )}%`,
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="draft-actions">
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={descartarBorrador}
+          >
+            Descartar
+          </button>
+
+          <button
+            type="button"
+            className="primary-button"
+            onClick={continuarBorrador}
+          >
+            Continuar encuesta
+          </button>
+        </div>
+      </section>
+    </div>
+  )}
 
         {/* ====================================
             INICIO
