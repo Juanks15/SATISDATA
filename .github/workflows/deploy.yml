@@ -17,21 +17,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
+  build:
     runs-on: ubuntu-latest
 
     steps:
       - name: Descargar repositorio
-        uses: actions/checkout@v7
+        uses: actions/checkout@v6
 
       - name: Configurar Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@v6
         with:
-          node-version: lts/*
+          node-version: 24
           cache: npm
 
       - name: Instalar dependencias
@@ -41,13 +37,23 @@ jobs:
         run: npm run build
 
       - name: Configurar GitHub Pages
-        uses: actions/configure-pages@v6
+        uses: actions/configure-pages@v5
 
-      - name: Subir artefacto
-        uses: actions/upload-pages-artifact@v5
+      - name: Subir artefacto de Pages
+        uses: actions/upload-pages-artifact@v4
         with:
           path: ./dist
 
+  deploy:
+    needs: build
+
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
       - name: Publicar SATISDATA
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@v4
