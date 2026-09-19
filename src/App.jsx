@@ -80,6 +80,9 @@ function App() {
 
   const [respuestas, setRespuestas] = useState({});
 
+  const [borradorId, setBorradorId] = useState(null);
+const [guardandoBorrador, setGuardandoBorrador] = useState(false);
+
   // ==========================================
   // ÚNICA FUENTE DE PREGUNTAS
   // ==========================================
@@ -159,6 +162,32 @@ function App() {
       );
     };
   }, []);
+  // ==========================================
+// AUTOGUARDADO DEL BORRADOR
+// ==========================================
+
+useEffect(() => {
+  if (
+    vista !== 'encuesta' ||
+    !borradorId
+  ) {
+    return;
+  }
+
+  const temporizador = setTimeout(() => {
+    guardarBorrador();
+  }, 400);
+
+  return () => {
+    clearTimeout(temporizador);
+  };
+}, [
+  formulario,
+  respuestas,
+  borradorId,
+  vista,
+]);
+
 
   // ==========================================
   // CARGAR ENCUESTAS
@@ -309,7 +338,96 @@ function App() {
   // INICIAR ENCUESTA
   // ==========================================
 
-  const iniciarEncuesta = () => {
+  const iniciarEncuesta = async () => {
+  try {
+    const borradoresActivos =
+      await db.borradores
+        .where('estado')
+        .equals('activo')
+        .toArray();
+
+    if (borradoresActivos.length > 0) {
+      const borrador = borradoresActivos
+        .sort(
+          (a, b) =>
+            new Date(b.fechaActualizacion) -
+            new Date(a.fechaActualizacion)
+        )[0];
+
+      const continuar = window.confirm(
+        'Existe una encuesta en progreso. ¿Desea continuarla?'
+      );
+
+      if (continuar) {
+        setBorradorId(borrador.id);
+
+        setFormulario(
+          borrador.formulario || {
+            departamento: '',
+            municipio: '',
+            observacion: '',
+            departamentoCodigo: '',
+            municipioCodigo: '',
+            municipioCodigoCompleto: '',
+          }
+        );
+
+        setRespuestas(
+          borrador.respuestas || {}
+        );
+
+        if (
+          borrador.formulario?.departamentoCodigo
+        ) {
+          const datos =
+            await obtenerMunicipios(
+              borrador.formulario
+                .departamentoCodigo
+            );
+
+          setMunicipios(datos);
+        }
+
+        setVista('encuesta');
+
+        return;
+      }
+
+      await db.borradores.delete(
+        borrador.id
+      );
+    }
+
+    const nuevoBorrador = {
+      fechaCreacion:
+        new Date().toISOString(),
+
+      fechaActualizacion:
+        new Date().toISOString(),
+
+      funcionarioId: null,
+
+      estado: 'activo',
+
+      formulario: {
+        departamento: '',
+        municipio: '',
+        observacion: '',
+        departamentoCodigo: '',
+        municipioCodigo: '',
+        municipioCodigoCompleto: '',
+      },
+
+      respuestas: {},
+    };
+
+    const id =
+      await db.borradores.add(
+        nuevoBorrador
+      );
+
+    setBorradorId(id);
+
     setFormulario({
       departamento: '',
       municipio: '',
@@ -321,11 +439,22 @@ function App() {
 
     setMunicipios([]);
     setRespuestas({});
+    setBorradorId(null);
     setErrorDepartamentos('');
     setErrorMunicipios('');
 
     setVista('encuesta');
-  };
+  } catch (error) {
+    console.error(
+      'Error iniciando encuesta:',
+      error
+    );
+
+    alert(
+      'No fue posible iniciar la encuesta.'
+    );
+  }
+};
 
   // ==========================================
   // ACTUALIZAR CAMPOS GENERALES
@@ -354,6 +483,38 @@ function App() {
       [preguntaId]: valor,
     }));
   };
+  // ==========================================
+// BORRADOR AUTOMÁTICO
+// ==========================================
+
+const guardarBorrador = async () => {
+  if (!borradorId) {
+    return;
+  }
+
+  try {
+    setGuardandoBorrador(true);
+
+    await db.borradores.update(borradorId, {
+      fechaActualizacion: new Date().toISOString(),
+
+      formulario: {
+        ...formulario,
+      },
+
+      respuestas: {
+        ...respuestas,
+      },
+    });
+  } catch (error) {
+    console.error(
+      'Error guardando borrador:',
+      error
+    );
+  } finally {
+    setGuardandoBorrador(false);
+  }
+};
 
   // ==========================================
   // VALIDAR ENCUESTA
@@ -465,6 +626,7 @@ function App() {
           'rw',
           db.encuestas,
           db.respuestas,
+          db.borrdores,
           async () => {
             const id =
               await db.encuestas.add(
@@ -495,8 +657,15 @@ function App() {
                 });
               }
             }
+            if (borradorId){
+              await db.borradores.delete(
+                borradorId
+              );
+            }
+            
 
             return id;
+            
           }
         );
 
@@ -1375,14 +1544,13 @@ function App() {
                 <div>
 
                   <strong>
-                    Guardado local
+                    {guardandoBorrador
+                    ? 'Guardando cambios'
+                    : 'Guardando local'}
                   </strong>
 
                   <p>
-                    La encuesta y sus respuestas
-                    se almacenarán en el dispositivo
-                    y quedarán pendientes de
-                    sincronización.
+                    Los cambios se guardan automáticamente en el dispositivo. La encuesta quedará pendiente de sincronización al finalizar. 
                   </p>
 
                 </div>
