@@ -1,38 +1,17 @@
-import { useEffect, useState } from 'react';
-import { db } from '../db/database';
+import { useState } from 'react';
+import { useEncuestas } from '../hooks/useEncuestas';
 
 function HistorialEncuestas({
   onVolver,
   onVerDetalle,
 }) {
-  const [encuestas, setEncuestas] = useState([]);
+    const {
+    encuestas,
+    cargandoEncuestas,
+    errorEncuestas,
+  } = useEncuestas();
   const [busqueda, setBusqueda] = useState('');
-  const [cargando, setCargando] = useState(true);
-
-  useEffect(() => {
-    cargarEncuestas();
-  }, []);
-
-  const cargarEncuestas = async () => {
-    try {
-      setCargando(true);
-
-      const registros = await db.encuestas
-        .orderBy('id')
-        .reverse()
-        .toArray();
-
-      setEncuestas(registros);
-    } catch (error) {
-      console.error(
-        'Error cargando históricos:',
-        error
-      );
-    } finally {
-      setCargando(false);
-    }
-  };
-
+  
   const encuestasFiltradas = encuestas.filter(
     (encuesta) => {
       const termino = busqueda
@@ -209,7 +188,7 @@ function HistorialEncuestas({
 
         </div>
 
-        {cargando ? (
+        {cargandoEncuestas ? (
 
           <div className="history-state">
 
@@ -224,7 +203,21 @@ function HistorialEncuestas({
             </span>
 
           </div>
+) : errorEncuestas ? (
 
+  <div className="history-state history-state-empty">
+    <div className="history-empty-icon">
+      !
+    </div>
+
+    <strong>
+      No fue posible cargar los históricos
+    </strong>
+
+    <span>
+      {errorEncuestas}
+    </span>
+  </div>
         ) : encuestasFiltradas.length === 0 ? (
 
           <div className="history-state history-state-empty">

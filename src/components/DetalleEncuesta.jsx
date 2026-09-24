@@ -1,48 +1,76 @@
-import { useEffect, useState } from 'react';
-import { db } from '../db/database';
+import {
+  useEffect,
+  useState,
+} from 'react';
+
 import { preguntasDemo } from '../data/preguntasDemo';
+import { useEncuestas } from '../hooks/useEncuestas';
 
 function DetalleEncuesta({
   encuestaId,
   onVolver,
 }) {
-  const [encuesta, setEncuesta] = useState(null);
-  const [respuestas, setRespuestas] = useState([]);
-  const [cargando, setCargando] = useState(true);
+  const {
+    obtenerEncuesta,
+  } = useEncuestas();
+
+  const [encuesta, setEncuesta] =
+    useState(null);
+
+  const [respuestas, setRespuestas] =
+    useState([]);
+
+  const [cargando, setCargando] =
+    useState(true);
 
   useEffect(() => {
-    cargarDetalle();
-  }, [encuestaId]);
+    let activo = true;
 
-  const cargarDetalle = async () => {
-    try {
-      setCargando(true);
+    const cargarDetalle = async () => {
+      try {
+        setCargando(true);
 
-      const encuestaEncontrada =
-        await db.encuestas.get(encuestaId);
+        const encuestaEncontrada =
+          await obtenerEncuesta(encuestaId);
 
-      if (!encuestaEncontrada) {
-        setEncuesta(null);
-        return;
+        if (!activo) {
+          return;
+        }
+
+        if (!encuestaEncontrada) {
+          setEncuesta(null);
+          setRespuestas([]);
+          return;
+        }
+
+        setEncuesta(encuestaEncontrada);
+
+        setRespuestas(
+          encuestaEncontrada.respuestas || []
+        );
+      } catch (error) {
+        console.error(
+          'Error cargando detalle de encuesta:',
+          error
+        );
+
+        if (activo) {
+          setEncuesta(null);
+          setRespuestas([]);
+        }
+      } finally {
+        if (activo) {
+          setCargando(false);
+        }
       }
+    };
 
-      const respuestasEncontradas =
-        await db.respuestas
-          .where('encuestaId')
-          .equals(encuestaId)
-          .toArray();
+    cargarDetalle();
 
-      setEncuesta(encuestaEncontrada);
-      setRespuestas(respuestasEncontradas);
-    } catch (error) {
-      console.error(
-        'Error cargando detalle de encuesta:',
-        error
-      );
-    } finally {
-      setCargando(false);
-    }
-  };
+    return () => {
+      activo = false;
+    };
+  }, [encuestaId, obtenerEncuesta]);
 
   const obtenerRespuesta = (preguntaId) => {
     const respuesta = respuestas.find(
@@ -291,7 +319,6 @@ function DetalleEncuesta({
               {encuesta.departamento ||
                 'No registrado'}
             </strong>
-
           </div>
 
           <div className="detail-info-item">
@@ -303,7 +330,6 @@ function DetalleEncuesta({
               {encuesta.municipio ||
                 'No registrado'}
             </strong>
-
           </div>
 
           <div className="detail-info-item">
@@ -316,7 +342,6 @@ function DetalleEncuesta({
                 encuesta.municipioCodigo ||
                 'No registrado'}
             </strong>
-
           </div>
 
         </div>
@@ -387,6 +412,7 @@ function DetalleEncuesta({
 
                     <h4>
                       {pregunta.texto}
+
                       {pregunta.obligatoria && (
                         <span className="detail-required">
                           *

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import './App.css';
 
+import { useSincronizacion } from './hooks/useSincronizacion';
+
 import PanelFuncionario from './components/PanelFuncionario';
 import HistorialEncuestas from './components/HistorialEncuestas';
 import DetalleEncuesta from './components/DetalleEncuesta';
@@ -21,16 +23,14 @@ function App() {
   // ESTADOS PRINCIPALES
   // ==========================================
 
- 
   const [vista, setVista] = useState('inicio');
-  const [encuestaSeleccionada, setEncuestaSeleccionada] =
-    useState(null);
+
+  const [
+    encuestaSeleccionada,
+    setEncuestaSeleccionada,
+  ] = useState(null);
 
   const [busqueda, setBusqueda] = useState('');
-
-  const [conectado, setConectado] = useState(
-    navigator.onLine
-  );
 
   // ==========================================
   // FORMULARIO GENERAL
@@ -79,7 +79,8 @@ function App() {
   // RESPUESTAS
   // ==========================================
 
-  const [respuestas, setRespuestas] = useState({});
+  const [respuestas, setRespuestas] =
+    useState({});
 
   // ==========================================
   // GESTIÓN DE BORRADORES
@@ -92,22 +93,41 @@ function App() {
     guardandoBorrador,
     iniciarBorrador,
     activarBorrador,
-    descartarBorrador: descartarBorradorHook,
+    descartarBorrador:
+      descartarBorradorHook,
     finalizarBorrador,
   } = useBorradorEncuesta({
     formulario,
     respuestas,
     vista,
   });
+
+  // ==========================================
+  // ENCUESTAS
+  // ==========================================
+
   const {
-  encuestas,
-  cargandoEncuestas,
-  errorEncuestas,
-  cargarEncuestas,
-  guardarEncuesta: guardarEncuestaService,
-  obtenerEncuesta,
-  eliminarEncuesta,
-} = useEncuestas();
+    encuestas,
+    cargandoEncuestas,
+    errorEncuestas,
+    cargarEncuestas,
+    guardarEncuesta:
+      guardarEncuestaService,
+    obtenerEncuesta,
+    eliminarEncuesta,
+  } = useEncuestas();
+
+  // ==========================================
+  // SINCRONIZACIÓN
+  // ==========================================
+
+  const {
+    online,
+    pendientes,
+    sincronizando,
+    errorSincronizacion,
+    sincronizar,
+  } = useSincronizacion();
 
   // ==========================================
   // ÚNICA FUENTE DE PREGUNTAS
@@ -116,8 +136,12 @@ function App() {
   const preguntas = useMemo(
     () =>
       preguntasDemo
-        .filter((pregunta) => pregunta.activa)
-        .sort((a, b) => a.orden - b.orden),
+        .filter(
+          (pregunta) => pregunta.activa
+        )
+        .sort(
+          (a, b) => a.orden - b.orden
+        ),
     []
   );
 
@@ -125,24 +149,28 @@ function App() {
   // PROGRESO DE LA ENCUESTA
   // ==========================================
 
-  const preguntasObligatorias = preguntas.filter(
-    (pregunta) => pregunta.obligatoria
-  );
+  const preguntasObligatorias =
+    preguntas.filter(
+      (pregunta) => pregunta.obligatoria
+    );
 
   const preguntasRespondidas =
-    preguntasObligatorias.filter((pregunta) => {
-      const valor = respuestas[pregunta.id];
+    preguntasObligatorias.filter(
+      (pregunta) => {
+        const valor =
+          respuestas[pregunta.id];
 
-      return (
-        valor !== undefined &&
-        valor !== null &&
-        valor !== '' &&
-        !(
-          Array.isArray(valor) &&
-          valor.length === 0
-        )
-      );
-    }).length;
+        return (
+          valor !== undefined &&
+          valor !== null &&
+          valor !== '' &&
+          !(
+            Array.isArray(valor) &&
+            valor.length === 0
+          )
+        );
+      }
+    ).length;
 
   const progreso =
     preguntasObligatorias.length > 0
@@ -154,37 +182,11 @@ function App() {
       : 0;
 
   // ==========================================
-  // DETECTAR CONEXIÓN
+  // CARGAR DEPARTAMENTOS
   // ==========================================
 
   useEffect(() => {
     cargarDepartamentos();
-
-    const manejarConexion = () => {
-      setConectado(navigator.onLine);
-    };
-
-    window.addEventListener(
-      'online',
-      manejarConexion
-    );
-
-    window.addEventListener(
-      'offline',
-      manejarConexion
-    );
-
-    return () => {
-      window.removeEventListener(
-        'online',
-        manejarConexion
-      );
-
-      window.removeEventListener(
-        'offline',
-        manejarConexion
-      );
-    };
   }, []);
 
   // ==========================================
@@ -597,11 +599,11 @@ function App() {
       // GUARDADO ATÓMICO
       // ========================================
 
-      const encuestaId =
-  await guardarEncuestaService({
-    encuesta: nuevaEncuesta,
-    respuestas,
-  });
+      await guardarEncuestaService({
+        encuesta: nuevaEncuesta,
+        respuestas,
+      });
+
       // ========================================
       // FINALIZAR BORRADOR
       // ========================================
@@ -640,17 +642,6 @@ function App() {
   };
 
   // ==========================================
-  // ENCUESTAS PENDIENTES
-  // ==========================================
-
-  const encuestasPendientes =
-    encuestas.filter(
-      (encuesta) =>
-        encuesta.estadoSincronizacion ===
-        'pendiente'
-    ).length;
-
-  // ==========================================
   // PANEL FUNCIONARIO
   // ==========================================
 
@@ -661,20 +652,6 @@ function App() {
   const cerrarSesion = () => {
     setVista('inicio');
     setBusqueda('');
-  };
-
-  const sincronizarEncuestas = () => {
-    if (!conectado) {
-      alert(
-        'No hay conexión a Internet. Las encuestas permanecerán almacenadas localmente.'
-      );
-
-      return;
-    }
-
-    alert(
-      'La sincronización con el servidor se implementará en la siguiente fase.'
-    );
   };
 
   const buscarDesdeFuncionario = (
@@ -770,28 +747,31 @@ function App() {
                 Sistema de encuestas
               </span>
             </div>
+
           </div>
 
           <div
             className={`connection-status ${
-              conectado
+              online
                 ? 'is-online'
                 : 'is-offline'
             }`}
           >
+
             <span
               className={`status-dot ${
-                conectado
+                online
                   ? 'online'
                   : 'offline'
               }`}
             ></span>
 
             <span>
-              {conectado
+              {online
                 ? 'Conectado'
                 : 'Sin conexión'}
             </span>
+
           </div>
 
         </div>
@@ -1087,7 +1067,7 @@ function App() {
                 </div>
 
                 <strong>
-                  {encuestasPendientes}
+                  {pendientes}
                 </strong>
 
                 <p>
@@ -1266,20 +1246,35 @@ function App() {
         {vista === 'funcionario' && (
           <PanelFuncionario
             encuestasPendientes={
-              encuestasPendientes
+              pendientes
             }
+
             encuestasRegistradas={
               encuestasRegistradas
             }
+
+            online={online}
+
+            sincronizando={
+              sincronizando
+            }
+
+            errorSincronizacion={
+              errorSincronizacion
+            }
+
             onCerrarSesion={
               cerrarSesion
             }
+
             onSincronizar={
-              sincronizarEncuestas
+              sincronizar
             }
+
             onBuscar={
               buscarDesdeFuncionario
             }
+
             onVerHistoricos={() => {
               setBusqueda('');
               setVista('historicos');
