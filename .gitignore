@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Configuración local y archivos de prueba
+.env.production
+prueba-*.json
