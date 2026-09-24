@@ -3,6 +3,9 @@ import { useState } from 'react';
 function PanelFuncionario({
   encuestasPendientes,
   encuestasRegistradas,
+  online,
+  sincronizando,
+  errorSincronizacion,
   onCerrarSesion,
   onSincronizar,
   onBuscar,
@@ -73,7 +76,9 @@ function PanelFuncionario({
             </span>
 
             <strong>
-              Operación local disponible
+              {online
+    ? 'Conexión disponible'
+    : 'Sin conexión a Internet'}
             </strong>
           </div>
 
@@ -211,14 +216,28 @@ function PanelFuncionario({
 
         <button
           type="button"
-          className="employee-sync-button"
-          onClick={onSincronizar}
-          disabled={encuestasPendientes === 0}
-        >
-          {encuestasPendientes > 0
-            ? 'Sincronizar ahora'
-            : 'Sin pendientes'}
+  className="employee-sync-button"
+  onClick={onSincronizar}
+  disabled={
+    !online ||
+    encuestasPendientes === 0 ||
+    sincronizando
+  }
+>
+  {sincronizando
+    ? 'Preparando sincronización...'
+    : !online
+      ? 'Sin conexión'
+      : encuestasPendientes > 0
+        ? 'Sincronizar ahora'
+        : 'Sin pendientes'}
+
         </button>
+        {errorSincronizacion && (
+  <div className="employee-sync-error">
+    {errorSincronizacion}
+  </div>
+)}
 
       </section>
 
