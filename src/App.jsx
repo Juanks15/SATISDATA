@@ -9,7 +9,7 @@ import DetalleEncuesta from './components/DetalleEncuesta';
 import Question from './components/Question';
 
 import { preguntasDemo } from './data/preguntasDemo';
-
+import Autenticacion from './auth/Autenticacion';
 import {
   obtenerDepartamentos,
   obtenerMunicipios,
@@ -1107,15 +1107,11 @@ function App() {
 
               </div>
 
-              <button
-                className="login-button"
-                type="button"
-                onClick={
-                  abrirPanelFuncionario
-                }
-              >
-                Ingresar con Microsoft
-              </button>
+              <Autenticacion
+  onAutenticado={() => {
+    abrirPanelFuncionario();
+  }}
+/>
 
             </section>
 

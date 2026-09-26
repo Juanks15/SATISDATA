@@ -13,12 +13,55 @@ registerSW({
   immediate: true,
 });
 
-const msalInstance = new PublicClientApplication(msalConfig);
-
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <MsalProvider instance={msalInstance}>
-      <App />
-    </MsalProvider>
-  </StrictMode>,
+const msalInstance = new PublicClientApplication(
+  msalConfig
 );
+
+async function iniciarAplicacion() {
+  try {
+    await msalInstance.initialize();
+
+    const cuentas =
+      msalInstance.getAllAccounts();
+
+    if (cuentas.length > 0) {
+      msalInstance.setActiveAccount(
+        cuentas[0]
+      );
+    }
+
+    createRoot(
+      document.getElementById('root')
+    ).render(
+      <StrictMode>
+        <MsalProvider
+          instance={msalInstance}
+        >
+          <App />
+        </MsalProvider>
+      </StrictMode>,
+    );
+  } catch (error) {
+    console.error(
+      'Error inicializando Microsoft Entra ID:',
+      error,
+    );
+
+    const root =
+      document.getElementById('root');
+
+    if (root) {
+      root.innerHTML = `
+        <div style="padding: 2rem; font-family: sans-serif;">
+          <h1>No fue posible iniciar SATISDATA</h1>
+          <p>
+            Ocurrió un problema al inicializar
+            el servicio de autenticación.
+          </p>
+        </div>
+      `;
+    }
+  }
+}
+
+iniciarAplicacion();

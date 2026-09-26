@@ -1,4 +1,15 @@
 import { useState } from 'react';
+import {
+  InteractionRequiredAuthError,
+} from '@azure/msal-browser';
+import { useMsal } from '@azure/msal-react';
+
+import { loginRequest } from '../auth/msalConfig';
+
+import {
+  obtenerAccessToken,
+  consultarHealth,
+} from '../services/api';
 
 function PanelFuncionario({
   encuestasPendientes,
@@ -11,7 +22,15 @@ function PanelFuncionario({
   onBuscar,
   onVerHistoricos,
 }) {
+  const { instance } = useMsal();
+
   const [busqueda, setBusqueda] = useState('');
+
+  const [estadoApi, setEstadoApi] =
+    useState('');
+
+  const [probandoApi, setProbandoApi] =
+    useState(false);
 
   const handleBuscar = (event) => {
     event.preventDefault();
@@ -22,6 +41,99 @@ function PanelFuncionario({
       onBuscar(termino);
     }
   };
+
+  const probarApi = async () => {
+  try {
+    setProbandoApi(true);
+    setEstadoApi('');
+
+    const account =
+      instance.getActiveAccount() ||
+      instance.getAllAccounts()[0];
+
+    if (!account) {
+      throw new Error(
+        'No existe una cuenta autenticada.',
+      );
+    }
+
+    instance.setActiveAccount(account);
+
+    const accessToken =
+      await obtenerAccessToken(
+        instance,
+        account,
+      );
+
+    console.log(
+      'TOKEN OBTENIDO:',
+      !!accessToken,
+    );
+
+    // Diagnóstico temporal: mostrar únicamente
+    // los claims necesarios, nunca el token completo.
+    try {
+      const partes = accessToken.split('.');
+
+      if (partes.length === 3) {
+        const base64 = partes[1]
+          .replace(/-/g, '+')
+          .replace(/_/g, '/');
+
+        const payload = JSON.parse(
+          atob(base64),
+        );
+
+        console.log(
+          '=== CLAIMS DEL TOKEN ===',
+        );
+        console.log('aud:', payload.aud);
+        console.log('iss:', payload.iss);
+        console.log('tid:', payload.tid);
+        console.log('azp:', payload.azp);
+        console.log('scp:', payload.scp);
+        console.log(
+          '========================',
+        );
+      } else {
+        console.warn(
+          'El token no tiene formato JWT esperado.',
+        );
+      }
+    } catch (error) {
+      console.warn(
+        'No fue posible leer los claims del token:',
+        error,
+      );
+    }
+
+    const data =
+      await consultarHealth(accessToken);
+
+    console.log(
+      'Respuesta autenticada de la API:',
+      data,
+    );
+
+    setEstadoApi(
+      `API conectada correctamente: ${
+        data.estado || 'OK'
+      }`,
+    );
+  } catch (error) {
+    console.error(
+      'Error verificando la API:',
+      error,
+    );
+
+    setEstadoApi(
+      error.message ||
+        'No fue posible conectar con la API.',
+    );
+  } finally {
+    setProbandoApi(false);
+  }
+};
 
   return (
     <section className="employee-dashboard">
@@ -39,11 +151,14 @@ function PanelFuncionario({
             className="employee-back-button"
             onClick={onCerrarSesion}
           >
-            <span className="employee-back-icon">←</span>
+            <span className="employee-back-icon">
+              ←
+            </span>
             Volver
           </button>
 
           <div className="employee-title-row">
+
             <div className="employee-title-icon">
               S
             </div>
@@ -57,6 +172,7 @@ function PanelFuncionario({
                 Gestión de encuestas
               </h2>
             </div>
+
           </div>
 
           <p className="employee-header-description">
@@ -77,14 +193,15 @@ function PanelFuncionario({
 
             <strong>
               {online
-    ? 'Conexión disponible'
-    : 'Sin conexión a Internet'}
+                ? 'Conexión disponible'
+                : 'Sin conexión a Internet'}
             </strong>
           </div>
 
         </div>
 
       </div>
+
 
       {/* ==================================================
           RESUMEN
@@ -122,9 +239,11 @@ function PanelFuncionario({
 
         </div>
 
+
         <div className="employee-stat-card">
 
           <div className="employee-stat-header">
+
             <span className="employee-card-kicker">
               REGISTRADAS
             </span>
@@ -132,6 +251,7 @@ function PanelFuncionario({
             <span className="employee-stat-icon employee-stat-icon-primary">
               ✓
             </span>
+
           </div>
 
           <strong>
@@ -145,9 +265,11 @@ function PanelFuncionario({
 
         </div>
 
+
         <div className="employee-stat-card employee-stat-card-warning">
 
           <div className="employee-stat-header">
+
             <span className="employee-card-kicker">
               PENDIENTES
             </span>
@@ -155,6 +277,7 @@ function PanelFuncionario({
             <span className="employee-stat-icon employee-stat-icon-warning">
               ↑
             </span>
+
           </div>
 
           <strong>
@@ -170,6 +293,7 @@ function PanelFuncionario({
 
       </section>
 
+
       {/* ==================================================
           SINCRONIZACIÓN
       ================================================== */}
@@ -183,6 +307,7 @@ function PanelFuncionario({
         <div className="employee-sync-main">
 
           <div className="employee-sync-heading">
+
             <span className="employee-card-kicker">
               SINCRONIZACIÓN
             </span>
@@ -198,6 +323,7 @@ function PanelFuncionario({
                 ? `${encuestasPendientes} pendientes`
                 : 'Todo al día'}
             </span>
+
           </div>
 
           <h3>
@@ -216,30 +342,31 @@ function PanelFuncionario({
 
         <button
           type="button"
-  className="employee-sync-button"
-  onClick={onSincronizar}
-  disabled={
-    !online ||
-    encuestasPendientes === 0 ||
-    sincronizando
-  }
->
-  {sincronizando
-    ? 'Preparando sincronización...'
-    : !online
-      ? 'Sin conexión'
-      : encuestasPendientes > 0
-        ? 'Sincronizar ahora'
-        : 'Sin pendientes'}
-
+          className="employee-sync-button"
+          onClick={onSincronizar}
+          disabled={
+            !online ||
+            encuestasPendientes === 0 ||
+            sincronizando
+          }
+        >
+          {sincronizando
+            ? 'Preparando sincronización...'
+            : !online
+              ? 'Sin conexión'
+              : encuestasPendientes > 0
+                ? 'Sincronizar ahora'
+                : 'Sin pendientes'}
         </button>
+
         {errorSincronizacion && (
-  <div className="employee-sync-error">
-    {errorSincronizacion}
-  </div>
-)}
+          <div className="employee-sync-error">
+            {errorSincronizacion}
+          </div>
+        )}
 
       </section>
+
 
       {/* ==================================================
           ACCIONES PRINCIPALES
@@ -263,9 +390,12 @@ function PanelFuncionario({
 
       </div>
 
+
       <section className="employee-actions-grid">
 
-        {/* HISTÓRICOS */}
+        {/* ==================================================
+            HISTÓRICOS
+        ================================================== */}
 
         <button
           type="button"
@@ -274,6 +404,7 @@ function PanelFuncionario({
         >
 
           <div className="employee-action-top">
+
             <span className="employee-action-icon">
               ≡
             </span>
@@ -281,6 +412,7 @@ function PanelFuncionario({
             <span className="employee-action-arrow">
               →
             </span>
+
           </div>
 
           <span className="employee-card-kicker">
@@ -304,14 +436,19 @@ function PanelFuncionario({
 
         </button>
 
-        {/* BÚSQUEDA */}
+
+        {/* ==================================================
+            BÚSQUEDA
+        ================================================== */}
 
         <div className="employee-search-card">
 
           <div className="employee-action-top">
+
             <span className="employee-action-icon">
               ⌕
             </span>
+
           </div>
 
           <span className="employee-card-kicker">
@@ -333,6 +470,7 @@ function PanelFuncionario({
           >
 
             <div className="employee-search-field">
+
               <input
                 type="search"
                 value={busqueda}
@@ -342,6 +480,7 @@ function PanelFuncionario({
                 placeholder="Código, departamento o municipio..."
                 aria-label="Buscar encuesta"
               />
+
             </div>
 
             <button
@@ -356,6 +495,73 @@ function PanelFuncionario({
         </div>
 
       </section>
+
+
+      {/* ==================================================
+          PRUEBA API
+      ================================================== */}
+
+      <section className="employee-sync-panel">
+
+        <div className="employee-sync-symbol">
+          ✓
+        </div>
+
+        <div className="employee-sync-main">
+
+          <div className="employee-sync-heading">
+
+            <span className="employee-card-kicker">
+              SERVIDOR
+            </span>
+
+            <span
+              className={
+                estadoApi
+                  ? 'employee-sync-badge employee-sync-badge-ready'
+                  : 'employee-sync-badge'
+              }
+            >
+              API protegida
+            </span>
+
+          </div>
+
+          <h3>
+            Conexión con SATISDATA API
+          </h3>
+
+          <p>
+            Compruebe que la sesión autenticada
+            puede comunicarse con el servidor.
+          </p>
+
+          {estadoApi && (
+            <div
+              className="employee-sync-error"
+              style={{
+                marginTop: '0.75rem',
+              }}
+            >
+              {estadoApi}
+            </div>
+          )}
+
+        </div>
+
+        <button
+          type="button"
+          className="employee-sync-button"
+          onClick={probarApi}
+          disabled={probandoApi}
+        >
+          {probandoApi
+            ? 'Verificando servidor...'
+            : 'Probar conexión'}
+        </button>
+
+      </section>
+
 
       {/* ==================================================
           SEGURIDAD / OFFLINE
@@ -392,6 +598,7 @@ function PanelFuncionario({
         </div>
 
       </section>
+
 
       {/* ==================================================
           SESIÓN

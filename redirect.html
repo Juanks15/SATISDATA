@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Procesando autenticación</title>
+  </head>
+  <body>
+    <p>Procesando autenticación...</p>
+
+    <script type="module">
+      import { broadcastResponseToMainFrame } from '@azure/msal-browser/redirect-bridge';
+
+      broadcastResponseToMainFrame().catch((error) => {
+        console.error(
+          'Error procesando la respuesta de Microsoft Entra:',
+          error,
+        );
+      });
+    </script>
+  </body>
+</html>

@@ -2,9 +2,13 @@ const tenantId = import.meta.env.VITE_ENTRA_TENANT_ID;
 const clientId = import.meta.env.VITE_ENTRA_CLIENT_ID;
 const apiScope = import.meta.env.VITE_ENTRA_API_SCOPE;
 
-const redirectUri = import.meta.env.PROD
+const appUrl = import.meta.env.PROD
   ? 'https://juanks15.github.io/SATISDATA/'
-  : 'http://localhost:5173';
+  : 'http://localhost:5173/SATISDATA/';
+
+const redirectUri = import.meta.env.PROD
+  ? 'https://juanks15.github.io/SATISDATA/redirect.html'
+  : 'http://localhost:5173/SATISDATA/redirect.html';
 
 if (!tenantId || !clientId || !apiScope) {
   throw new Error(
@@ -17,7 +21,7 @@ export const msalConfig = {
     clientId,
     authority: `https://login.microsoftonline.com/${tenantId}`,
     redirectUri,
-    postLogoutRedirectUri: redirectUri,
+    postLogoutRedirectUri: appUrl,
     navigateToLoginRequestUrl: true,
   },
   cache: {
