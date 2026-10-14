@@ -7,20 +7,28 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# Dependencias y compilacion
+node_modules/
+dist/
+dist-ssr/
+dev-dist/
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+# Archivos de entorno local
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Archivos de prueba
+prueba-*.json
+api/prueba-azure.json
+
+# Configuracion del editor
+.vscode/
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-
-# Configuraci�n local y archivos de prueba
