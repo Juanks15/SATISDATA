@@ -76,3 +76,52 @@ export async function consultarHealth(
 
   return response.json();
 }
+
+/**
+ * Envía una encuesta a SATISDATA API.
+ */
+export async function enviarEncuesta(
+  accessToken,
+  payload,
+) {
+  if (!accessToken) {
+    throw new Error(
+      'No existe un access token para enviar la encuesta.',
+    );
+  }
+
+  if (!payload) {
+    throw new Error(
+      'El payload de la encuesta es obligatorio.',
+    );
+  }
+
+  const response = await fetch(
+    `${API_URL}/api/encuestas`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+
+  if (!response.ok) {
+    const cuerpo = await response.text();
+
+    throw new Error(
+      [
+        `La API respondió con HTTP ${response.status}.`,
+        cuerpo
+          ? `Respuesta: ${cuerpo}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join('\n'),
+    );
+  }
+
+  return response.json();
+}

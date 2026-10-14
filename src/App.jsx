@@ -58,7 +58,7 @@ function App() {
   const [
     cargandoDepartamentos,
     setCargandoDepartamentos,
-  ] = useState(false);
+  ] = useState(true);
 
   const [
     cargandoMunicipios,
@@ -107,15 +107,10 @@ function App() {
   // ==========================================
 
   const {
-    encuestas,
-    cargandoEncuestas,
-    errorEncuestas,
-    cargarEncuestas,
-    guardarEncuesta:
-      guardarEncuestaService,
-    obtenerEncuesta,
-    eliminarEncuesta,
-  } = useEncuestas();
+  encuestas,
+  guardarEncuesta:
+    guardarEncuestaService,
+} = useEncuestas();
 
   // ==========================================
   // SINCRONIZACIÓN
@@ -126,6 +121,7 @@ function App() {
     pendientes,
     sincronizando,
     errorSincronizacion,
+    actualizarPendientes,
     sincronizar,
   } = useSincronizacion();
 
@@ -186,23 +182,19 @@ function App() {
   // ==========================================
 
   useEffect(() => {
-    cargarDepartamentos();
-  }, []);
+  let cancelado = false;
 
-  // ==========================================
-  // CARGAR DEPARTAMENTOS
-  // ==========================================
-
-  const cargarDepartamentos = async () => {
+  const cargarInicialmente = async () => {
     try {
-      setCargandoDepartamentos(true);
+      const datos = await obtenerDepartamentos();
+
+      if (cancelado) return;
+
       setErrorDepartamentos('');
-
-      const datos =
-        await obtenerDepartamentos();
-
       setDepartamentos(datos);
     } catch (error) {
+      if (cancelado) return;
+
       console.error(
         'Error cargando departamentos:',
         error
@@ -212,9 +204,18 @@ function App() {
         'No fue posible cargar los departamentos.'
       );
     } finally {
-      setCargandoDepartamentos(false);
+      if (!cancelado) {
+        setCargandoDepartamentos(false);
+      }
     }
   };
+
+  void cargarInicialmente();
+
+  return () => {
+    cancelado = true;
+  };
+}, []);
 
   // ==========================================
   // CAMBIAR DEPARTAMENTO
@@ -603,6 +604,7 @@ function App() {
         encuesta: nuevaEncuesta,
         respuestas,
       });
+      await actualizarPendientes();
 
       // ========================================
       // FINALIZAR BORRADOR

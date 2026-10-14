@@ -1,10 +1,6 @@
 import { useState } from 'react';
-import {
-  InteractionRequiredAuthError,
-} from '@azure/msal-browser';
-import { useMsal } from '@azure/msal-react';
 
-import { loginRequest } from '../auth/msalConfig';
+import { useMsal } from '@azure/msal-react';
 
 import {
   obtenerAccessToken,

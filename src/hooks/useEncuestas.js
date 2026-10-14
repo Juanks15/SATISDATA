@@ -20,7 +20,7 @@ export function useEncuestas() {
   const [
     cargandoEncuestas,
     setCargandoEncuestas,
-  ] = useState(false);
+  ] = useState(true);
 
   const [
     errorEncuestas,
@@ -144,9 +144,40 @@ export function useEncuestas() {
     );
 
   useEffect(() => {
-    cargarEncuestas();
-  }, [cargarEncuestas]);
+  let cancelado = false;
 
+  const cargarInicialmente = async () => {
+    try {
+      const datos = await obtenerEncuestas();
+
+      if (cancelado) return;
+
+      setEncuestas(datos);
+      setErrorEncuestas('');
+    } catch (error) {
+      if (cancelado) return;
+
+      console.error(
+        'Error cargando encuestas:',
+        error
+      );
+
+      setErrorEncuestas(
+        'No fue posible cargar las encuestas.'
+      );
+    } finally {
+      if (!cancelado) {
+        setCargandoEncuestas(false);
+      }
+    }
+  };
+
+  void cargarInicialmente();
+
+  return () => {
+    cancelado = true;
+  };
+}, []);
   return {
     encuestas,
     cargandoEncuestas,

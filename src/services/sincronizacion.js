@@ -10,7 +10,10 @@ const ESTADOS = {
 export async function obtenerEncuestasPendientes() {
   return db.encuestas
     .where('estadoSincronizacion')
-    .equals(ESTADOS.PENDIENTE)
+    .anyOf([
+      ESTADOS.PENDIENTE,
+      ESTADOS.ERROR,
+    ])
     .toArray();
 }
 
@@ -47,9 +50,22 @@ export async function marcarComoSincronizando(
     return;
   }
 
+  const encuesta =
+    await db.encuestas.get(encuestaId);
+
+  if (!encuesta) {
+    return;
+  }
+
   await db.encuestas.update(encuestaId, {
     estadoSincronizacion:
       ESTADOS.SINCRONIZANDO,
+
+    intentosSincronizacion:
+      (encuesta.intentosSincronizacion || 0) + 1,
+
+    ultimoErrorSincronizacion:
+      null,
   });
 }
 
@@ -63,11 +79,18 @@ export async function marcarComoSincronizada(
   await db.encuestas.update(encuestaId, {
     estadoSincronizacion:
       ESTADOS.SINCRONIZADA,
+
+    fechaSincronizacion:
+      new Date().toISOString(),
+
+    ultimoErrorSincronizacion:
+      null,
   });
 }
 
 export async function marcarComoError(
-  encuestaId
+  encuestaId,
+  mensajeError
 ) {
   if (!encuestaId) {
     return;
@@ -76,6 +99,10 @@ export async function marcarComoError(
   await db.encuestas.update(encuestaId, {
     estadoSincronizacion:
       ESTADOS.ERROR,
+
+    ultimoErrorSincronizacion:
+      mensajeError ||
+      'Error desconocido durante la sincronización.',
   });
 }
 
@@ -90,35 +117,45 @@ export function construirPayloadEncuesta(
   }
 
   return {
-    encuesta: {
-      idLocal: encuesta.id,
-      codigo: encuesta.codigo,
-      fechaCreacion:
-        encuesta.fechaCreacion,
-      departamento:
-        encuesta.departamento,
-      municipio:
-        encuesta.municipio,
-      departamentoCodigo:
-        encuesta.departamentoCodigo,
-      municipioCodigo:
-        encuesta.municipioCodigo,
-      municipioCodigoCompleto:
-        encuesta.municipioCodigoCompleto,
-      observacion:
-        encuesta.observacion,
-      funcionarioId:
-        encuesta.funcionarioId,
-    },
+    idLocal: encuesta.id,
 
-    respuestas: (respuestas || []).map(
-      (respuesta) => ({
-        preguntaId:
-          respuesta.preguntaId,
-        respuesta:
-          respuesta.respuesta,
-      })
-    ),
+    codigo:
+      encuesta.codigo,
+
+    fechaCreacion:
+      encuesta.fechaCreacion,
+
+    departamento:
+      encuesta.departamento,
+
+    municipio:
+      encuesta.municipio,
+
+    departamentoCodigo:
+      encuesta.departamentoCodigo,
+
+    municipioCodigo:
+      encuesta.municipioCodigo,
+
+    municipioCodigoCompleto:
+      encuesta.municipioCodigoCompleto,
+
+    observacion:
+      encuesta.observacion,
+
+    funcionarioId:
+      encuesta.funcionarioId,
+
+    respuestas:
+      (respuestas || []).map(
+        (respuesta) => ({
+          preguntaId:
+            respuesta.preguntaId,
+
+          respuesta:
+            respuesta.respuesta,
+        })
+      ),
   };
 }
 

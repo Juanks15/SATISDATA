@@ -23,6 +23,4 @@ dist-ssr
 *.sln
 *.sw?
 
-# Configuración local y archivos de prueba
-.env.production
-prueba-*.json
+# Configuraciï¿½n local y archivos de prueba
