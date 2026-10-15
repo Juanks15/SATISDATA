@@ -1,8 +1,9 @@
+
 import { useEffect, useMemo, useState } from 'react';
 import './App.css';
-
+import { useMsal } from '@azure/msal-react';
 import { useSincronizacion } from './hooks/useSincronizacion';
-
+import { InteractionStatus } from '@azure/msal-browser';
 import PanelFuncionario from './components/PanelFuncionario';
 import HistorialEncuestas from './components/HistorialEncuestas';
 import DetalleEncuesta from './components/DetalleEncuesta';
@@ -17,20 +18,35 @@ import {
 
 import { useBorradorEncuesta } from './hooks/useBorradorEncuesta';
 import { useEncuestas } from './hooks/useEncuestas';
-
-function App() {
-  // ==========================================
+ // ==========================================
   // ESTADOS PRINCIPALES
   // ==========================================
 
-  const [vista, setVista] = useState('inicio');
+function App() {
+  const {
+    instance,
+    accounts,
+    inProgress,
+  } = useMsal();
+
+  const [vista, setVista] = useState(null);
+
+  const cuentaAutenticada =
+    instance.getActiveAccount() || accounts[0] || null;
+
+  const vistaActual =
+    vista ??
+    (inProgress !== InteractionStatus.None
+      ? 'cargando'
+      : cuentaAutenticada
+        ? 'funcionario'
+        : 'inicio');
+  const [busqueda, setBusqueda] = useState('');
 
   const [
     encuestaSeleccionada,
     setEncuestaSeleccionada,
   ] = useState(null);
-
-  const [busqueda, setBusqueda] = useState('');
 
   // ==========================================
   // FORMULARIO GENERAL
@@ -99,7 +115,7 @@ function App() {
   } = useBorradorEncuesta({
     formulario,
     respuestas,
-    vista,
+    vista: vistaActual,
   });
 
   // ==========================================
@@ -216,6 +232,23 @@ function App() {
     cancelado = true;
   };
 }, []);
+useEffect(() => {
+  // Esperar a que MSAL termine de inicializarse
+  // o procesar una interacción con Microsoft.
+  if (inProgress !== InteractionStatus.None) {
+    return;
+  }
+
+  // Sincronizar la cuenta activa con MSAL. La vista se deriva
+  // de la sesión más abajo, sin actualizar estado desde el efecto.
+  const cuenta =
+    instance.getActiveAccount() ||
+    accounts[0];
+
+  if (cuenta && !instance.getActiveAccount()) {
+    instance.setActiveAccount(cuenta);
+  }
+}, [instance, accounts, inProgress]);
 
   // ==========================================
   // CAMBIAR DEPARTAMENTO
@@ -453,8 +486,14 @@ function App() {
       });
 
       setMunicipios([]);
-      setRespuestas({});
-      setVista('inicio');
+setRespuestas({});
+setBusqueda('');
+
+const cuenta =
+  instance.getActiveAccount() ||
+  instance.getAllAccounts()[0];
+
+setVista(cuenta ? 'funcionario' : 'inicio');
     } catch (error) {
       console.error(
         'Error descartando borrador:',
@@ -626,7 +665,7 @@ function App() {
       setMunicipios([]);
       setRespuestas({});
       setBusqueda('');
-      setVista('inicio');
+      setVista(cuentaAutenticada ? 'funcionario' : 'inicio');
 
       alert(
         'Encuesta guardada correctamente en el dispositivo.'
@@ -651,10 +690,37 @@ function App() {
     setVista('funcionario');
   };
 
-  const cerrarSesion = () => {
+  const cerrarSesion = async () => {
+  const cuenta =
+    instance.getActiveAccount() ||
+    accounts[0] ||
+    null;
+
+  setBusqueda('');
+
+  // Si no hay una cuenta cargada, volver al inicio.
+  if (!cuenta) {
     setVista('inicio');
-    setBusqueda('');
-  };
+    return;
+  }
+
+  try {
+    // Cerrar la sesión de Microsoft y limpiar
+    // la sesión de SATISDATA mediante MSAL.
+    await instance.logoutRedirect({
+      account: cuenta,
+    });
+  } catch (error) {
+    console.error(
+      'Error al cerrar la sesión de Microsoft:',
+      error
+    );
+
+    alert(
+      'No fue posible cerrar la sesión. Verifique su conexión e inténtelo nuevamente.'
+    );
+  }
+};
 
   const buscarDesdeFuncionario = (
     texto
@@ -785,6 +851,14 @@ function App() {
       ====================================== */}
 
       <main className="main-content">
+
+        {vistaActual === 'cargando' && (
+          <section className="welcome" aria-live="polite">
+            <span className="welcome-label">SATISDATA</span>
+            <h2>Restaurando sesión</h2>
+            <p>Estamos verificando tu sesión de Microsoft. Espera un momento.</p>
+          </section>
+        )}
 
         {mostrarBorrador &&
           borradorEncontrado && (
@@ -993,7 +1067,7 @@ function App() {
             INICIO
         ==================================== */}
 
-        {vista === 'inicio' && (
+        {vistaActual === 'inicio' && (
           <>
 
             <section className="welcome">
@@ -1016,6 +1090,22 @@ function App() {
               </p>
 
             </section>
+            {cuentaAutenticada && (
+  <button
+    type="button"
+    className="employee-back-button"
+    onClick={() => setVista('funcionario')}
+  >
+    <span
+      className="employee-back-icon"
+      aria-hidden="true"
+    >
+      ←
+    </span>
+
+    Volver al panel del funcionario
+  </button>
+)}
 
             <section className="dashboard">
 
@@ -1241,7 +1331,7 @@ function App() {
             PANEL FUNCIONARIO
         ==================================== */}
 
-        {vista === 'funcionario' && (
+        {vistaActual === 'funcionario' && (
           <PanelFuncionario
             encuestasPendientes={
               pendientes
@@ -1264,6 +1354,10 @@ function App() {
             onCerrarSesion={
               cerrarSesion
             }
+            onHacerEncuesta={() => {
+  setBusqueda('');
+  setVista('inicio');
+}}
 
             onSincronizar={
               sincronizar
@@ -1284,7 +1378,7 @@ function App() {
             HISTÓRICOS
         ==================================== */}
 
-        {vista === 'historicos' && (
+        {vistaActual === 'historicos' && (
           <HistorialEncuestas
             onVolver={() =>
               setVista('funcionario')
@@ -1305,7 +1399,7 @@ function App() {
             DETALLE
         ==================================== */}
 
-        {vista === 'detalle' && (
+        {vistaActual === 'detalle' && (
           <DetalleEncuesta
             encuestaId={
               encuestaSeleccionada
@@ -1324,7 +1418,7 @@ function App() {
             ENCUESTA
         ==================================== */}
 
-        {vista === 'encuesta' && (
+        {vistaActual === 'encuesta' && (
 
           <section className="survey-section">
 

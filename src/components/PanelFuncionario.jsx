@@ -13,6 +13,7 @@ function PanelFuncionario({
   online,
   sincronizando,
   errorSincronizacion,
+  onHacerEncuesta,
   onCerrarSesion,
   onSincronizar,
   onBuscar,
@@ -142,16 +143,6 @@ function PanelFuncionario({
 
         <div className="employee-heading">
 
-          <button
-            type="button"
-            className="employee-back-button"
-            onClick={onCerrarSesion}
-          >
-            <span className="employee-back-icon">
-              ←
-            </span>
-            Volver
-          </button>
 
           <div className="employee-title-row">
 
@@ -388,6 +379,42 @@ function PanelFuncionario({
 
 
       <section className="employee-actions-grid">
+        {/* ==================================================
+            NUEVA ENCUESTA
+        ================================================== */}
+
+<button
+  type="button"
+  className="employee-action-card employee-action-card--survey"
+  onClick={onHacerEncuesta}
+>
+  <div className="employee-action-top">
+    <span className="employee-action-icon">
+      +
+    </span>
+
+    <span className="employee-action-arrow">
+      →
+    </span>
+  </div>
+
+  <span className="employee-card-kicker">
+    REGISTRO
+  </span>
+
+  <h3>
+    Hacer otra encuesta
+  </h3>
+
+  <p>
+    Inicie una nueva encuesta de satisfacción
+    desde este dispositivo.
+  </p>
+
+  <span className="employee-action-link">
+    Nueva encuesta <span>→</span>
+  </span>
+</button>
 
         {/* ==================================================
             HISTÓRICOS
