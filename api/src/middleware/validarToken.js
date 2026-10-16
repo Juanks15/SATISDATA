@@ -111,12 +111,17 @@ async function validarToken(request) {
     const clave = await cliente.getSigningKey(header.kid);
 
     clavePublica = clave.getPublicKey();
-  } catch {
-    return noAutorizado(
-      503,
-      'No fue posible verificar el token con Microsoft en este momento.'
-    );
-  }
+  } catch (error) {
+  console.error(
+    'Error obteniendo claves públicas de Microsoft:',
+    error.message
+  );
+
+  return noAutorizado(
+    503,
+    'No fue posible verificar el token con Microsoft en este momento.'
+  );
+}
 
   let claims;
 
@@ -135,12 +140,18 @@ async function validarToken(request) {
       ],
       clockTolerance: 5,
     });
-  } catch {
-    return noAutorizado(
-      401,
-      'El token es inválido, ha expirado o no corresponde a esta API.'
-    );
-  }
+  } catch (error) {
+  console.error(
+    'Error verificando firma o claims del token:',
+    error.name,
+    error.message
+  );
+
+  return noAutorizado(
+    401,
+    'El token es inválido, ha expirado o no corresponde a esta API.'
+  );
+}
 
   // Verificar nuevamente el inquilino después
   // de comprobar la firma y los claims.

@@ -24,6 +24,7 @@ import {
   marcarComoSincronizando,
   marcarComoSincronizada,
   marcarComoError,
+  recuperarSincronizacionesInterrumpidas,
 } from '../services/sincronizacion';
 
 export function useSincronizacion() {
@@ -48,17 +49,17 @@ export function useSincronizacion() {
     setErrorSincronizacion,
   ] = useState('');
 
+  // ==========================================
+  // ACTUALIZAR CONTADOR DE PENDIENTES
+  // ==========================================
+
   const actualizarPendientes =
     useCallback(async () => {
       try {
-        setErrorSincronizacion('');
-
         const encuestas =
           await obtenerEncuestasPendientes();
 
-        setPendientes(
-          encuestas.length
-        );
+        setPendientes(encuestas.length);
 
         return encuestas;
       } catch (error) {
@@ -75,10 +76,14 @@ export function useSincronizacion() {
       }
     }, []);
 
+  // ==========================================
+  // DETECTAR CAMBIOS DE CONECTIVIDAD
+  // ==========================================
+
   useEffect(() => {
     const manejarOnline = () => {
       setOnline(true);
-      actualizarPendientes();
+      void actualizarPendientes();
     };
 
     const manejarOffline = () => {
@@ -108,39 +113,54 @@ export function useSincronizacion() {
     };
   }, [actualizarPendientes]);
 
+  // ==========================================
+  // RECUPERAR SINCRONIZACIONES INTERRUMPIDAS
+  // ==========================================
+
   useEffect(() => {
-  let cancelado = false;
+    let cancelado = false;
 
-  const cargarPendientesInicialmente = async () => {
-    try {
-      const encuestas =
-        await obtenerEncuestasPendientes();
+    const cargarPendientesInicialmente =
+      async () => {
+        try {
+          await recuperarSincronizacionesInterrumpidas();
 
-      if (cancelado) return;
+          const encuestas =
+            await obtenerEncuestasPendientes();
 
-      setPendientes(encuestas.length);
-      setErrorSincronizacion('');
+          if (cancelado) {
+            return;
+          }
 
-    } catch (error) {
-      if (cancelado) return;
+          setPendientes(encuestas.length);
+          setErrorSincronizacion('');
 
-      console.error(
-        'Error consultando encuestas pendientes:',
-        error
-      );
+        } catch (error) {
+          if (cancelado) {
+            return;
+          }
 
-      setErrorSincronizacion(
-        'No fue posible consultar las encuestas pendientes.'
-      );
-    }
-  };
+          console.error(
+            'Error recuperando encuestas pendientes:',
+            error
+          );
 
-  void cargarPendientesInicialmente();
+          setErrorSincronizacion(
+            'No fue posible recuperar las encuestas pendientes.'
+          );
+        }
+      };
 
-  return () => {
-    cancelado = true;
-  };
-}, []);
+    void cargarPendientesInicialmente();
+
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+
+  // ==========================================
+  // SINCRONIZAR ENCUESTAS
+  // ==========================================
 
   const sincronizar = useCallback(
     async () => {
@@ -160,21 +180,25 @@ export function useSincronizacion() {
         setSincronizando(true);
         setErrorSincronizacion('');
 
+        // --------------------------------------
+        // 1. Obtener cuenta autenticada
+        // --------------------------------------
+
         const account =
           instance.getActiveAccount() ||
           instance.getAllAccounts()[0];
 
         if (!account) {
           throw new Error(
-            'No existe una cuenta autenticada.'
+            'No existe una cuenta autenticada. Inicia sesión con Microsoft.'
           );
         }
 
         instance.setActiveAccount(account);
 
-        // ==========================================
-        // OBTENER TOKEN
-        // ==========================================
+        // --------------------------------------
+        // 2. Obtener Access Token
+        // --------------------------------------
 
         let accessToken;
 
@@ -204,25 +228,30 @@ export function useSincronizacion() {
 
         if (!accessToken) {
           throw new Error(
-            'No fue posible obtener el access token.'
+            'No fue posible obtener el token de acceso.'
           );
         }
 
-        // ==========================================
-        // OBTENER ENCUESTAS
-        // ==========================================
+        // --------------------------------------
+        // 3. Consultar encuestas pendientes
+        // --------------------------------------
 
         const encuestas =
           await obtenerEncuestasPendientes();
 
+        setPendientes(encuestas.length);
+
         if (encuestas.length === 0) {
-          setPendientes(0);
+          setErrorSincronizacion('');
           return;
         }
 
-        // ==========================================
-        // SINCRONIZAR UNA POR UNA
-        // ==========================================
+        let exitosas = 0;
+        let fallidas = 0;
+
+        // --------------------------------------
+        // 4. Enviar cada encuesta
+        // --------------------------------------
 
         for (const encuesta of encuestas) {
           try {
@@ -237,7 +266,7 @@ export function useSincronizacion() {
 
             if (!datos) {
               throw new Error(
-                `No fue posible obtener la encuesta local ${encuesta.id}.`
+                `No fue posible recuperar la encuesta local ${encuesta.id}.`
               );
             }
 
@@ -252,34 +281,44 @@ export function useSincronizacion() {
               payload.codigo
             );
 
-            const resultado = await enviarEncuesta(
-  accessToken,
-  payload
-);
+            const resultado =
+              await enviarEncuesta(
+                accessToken,
+                payload
+              );
 
-console.log(
-  'Respuesta de la API:',
-  resultado
-);
+            console.log(
+              'Respuesta de SATISDATA API:',
+              resultado
+            );
 
-if (!resultado?.ok) {
-  throw new Error(
-    resultado?.mensaje ||
-      'La API no confirmó la recepción de la encuesta.'
-  );
-}
+            // ----------------------------------
+            // 5. Validar la respuesta del servidor
+            // ----------------------------------
 
-if (resultado.persistida !== true) {
-  throw new Error(
-    'La API recibió la encuesta, pero todavía no confirmó su almacenamiento permanente.'
-  );
-}
+            if (!resultado?.ok) {
+              throw new Error(
+                resultado?.mensaje ||
+                  'La API no confirmó la recepción de la encuesta.'
+              );
+            }
 
-await marcarComoSincronizada(encuesta.id);
+            if (resultado.persistida !== true) {
+              throw new Error(
+                'La API no confirmó el almacenamiento permanente de la encuesta.'
+              );
+            }
+
+            // ----------------------------------
+            // 6. Marcar como sincronizada
+            // Solo después de la confirmación
+            // ----------------------------------
 
             await marcarComoSincronizada(
               encuesta.id
             );
+
+            exitosas += 1;
 
           } catch (error) {
             console.error(
@@ -289,12 +328,31 @@ await marcarComoSincronizada(encuesta.id);
 
             await marcarComoError(
               encuesta.id,
-              error.message
+              error.message ||
+                'Error desconocido durante la sincronización.'
             );
+
+            fallidas += 1;
           }
         }
 
+        // --------------------------------------
+        // 7. Actualizar el contador final
+        // --------------------------------------
+
         await actualizarPendientes();
+
+        if (fallidas > 0) {
+          setErrorSincronizacion(
+            `Sincronización finalizada: ${exitosas} correcta(s) y ${fallidas} fallida(s). Las fallidas permanecen disponibles para reintentar.`
+          );
+        } else {
+          setErrorSincronizacion('');
+
+          console.log(
+            `Sincronización completada: ${exitosas} encuesta(s).`
+          );
+        }
 
       } catch (error) {
         console.error(
@@ -304,8 +362,13 @@ await marcarComoSincronizada(encuesta.id);
 
         setErrorSincronizacion(
           error.message ||
-          'No fue posible completar la sincronización.'
+            'No fue posible completar la sincronización.'
         );
+
+        // Refrescar el contador sin ocultar
+        // las encuestas que siguen pendientes.
+        await actualizarPendientes();
+
       } finally {
         setSincronizando(false);
       }
@@ -317,6 +380,10 @@ await marcarComoSincronizada(encuesta.id);
       actualizarPendientes,
     ]
   );
+
+  // ==========================================
+  // ESTADO PÚBLICO DEL HOOK
+  // ==========================================
 
   return {
     online,

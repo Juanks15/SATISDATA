@@ -16,6 +16,28 @@ export async function obtenerEncuestasPendientes() {
     ])
     .toArray();
 }
+export async function recuperarSincronizacionesInterrumpidas() {
+  const interrumpidas = await db.encuestas
+    .where('estadoSincronizacion')
+    .equals(ESTADOS.SINCRONIZANDO)
+    .toArray();
+
+  if (interrumpidas.length === 0) {
+    return 0;
+  }
+
+  await db.transaction('rw', db.encuestas, async () => {
+    for (const encuesta of interrumpidas) {
+      await db.encuestas.update(encuesta.id, {
+        estadoSincronizacion: ESTADOS.ERROR,
+        ultimoErrorSincronizacion:
+          'La sincronización anterior se interrumpió. Puede reintentarse.',
+      });
+    }
+  });
+
+  return interrumpidas.length;
+}
 
 export async function obtenerEncuestaParaSincronizar(
   encuestaId
