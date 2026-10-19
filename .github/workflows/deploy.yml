@@ -1,3 +1,4 @@
+
 name: Deploy SATISDATA
 
 on:
@@ -35,6 +36,11 @@ jobs:
 
       - name: Construir SATISDATA
         run: npm run build
+        env:
+          VITE_ENTRA_TENANT_ID: ${{ vars.VITE_ENTRA_TENANT_ID }}
+          VITE_ENTRA_CLIENT_ID: ${{ vars.VITE_ENTRA_CLIENT_ID }}
+          VITE_ENTRA_API_SCOPE: ${{ vars.VITE_ENTRA_API_SCOPE }}
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
 
       - name: Configurar GitHub Pages
         uses: actions/configure-pages@v5
@@ -46,7 +52,6 @@ jobs:
 
   deploy:
     needs: build
-
     runs-on: ubuntu-latest
 
     environment:
