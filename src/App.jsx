@@ -801,23 +801,17 @@ setVista(cuenta ? 'funcionario' : 'inicio');
         <div className="header-content">
 
           <div className="logo">
-
-            <span className="logo-icon">
-              S
-            </span>
-
-            <div>
-              <h1>
-                SATISDATA
-              </h1>
-
-              <span>
-                Sistema de encuestas
-              </span>
-            </div>
-
-          </div>
-
+  <img
+    src={`${import.meta.env.BASE_URL}satisdata-logo-horizontal.png`}
+    alt="SATISDATA - Sistema de encuestas"
+    style={{
+      display: 'block',
+      width: 'min(260px, 70vw)',
+      height: 'auto',
+      objectFit: 'contain',
+    }}
+  />
+</div>
           <div
             className={`connection-status ${
               online
